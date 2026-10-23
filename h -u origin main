@@ -1,0 +1,146 @@
+[33maf2a050[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m Upload StockBite project
+ .vscode/settings.json                              |   8 [32m+[m
+ README.md                                          |  29 [32m++[m
+ StockBite/.vscode/settings.json                    |   5 [32m+[m
+ StockBite/README.md                                |  36 [32m++[m
+ StockBite/database/stockbite.sql                   |  49 [32m++[m
+ StockBite/src/stockbite/Main.java                  |  41 [32m++[m
+ StockBite/src/stockbite/dao/ProductDAO.java        |  98 [32m++++[m
+ StockBite/src/stockbite/dao/TransactionDAO.java    | 106 [32m+++++[m
+ StockBite/src/stockbite/db/DBConnection.java       |  19 [32m+[m
+ StockBite/src/stockbite/model/CartItem.java        |  20 [32m+[m
+ StockBite/src/stockbite/model/Product.java         |  20 [32m+[m
+ StockBite/src/stockbite/model/SaleTransaction.java |  24 [32m+[m
+ StockBite/src/stockbite/ui/InventoryPanel.java     | 122 [32m+++++[m
+ StockBite/src/stockbite/ui/MainFrame.java          |  63 [32m+++[m
+ StockBite/src/stockbite/ui/POSPanel.java           | 233 [32m+++++++++[m
+ StockBite/src/stockbite/ui/ProductPanel.java       | 193 [32m++++++++[m
+ StockBite/src/stockbite/ui/ReceiptDialog.java      |  87 [32m++++[m
+ StockBite/src/stockbite/ui/Theme.java              | 166 [32m+++++++[m
+ StockBite/src/stockbite/ui/TransactionPanel.java   | 117 [32m+++++[m
+ StockBite/src/stockbite/util/Format.java           |  19 [32m+[m
+ bin/CartItem.class                                 | Bin [31m0[m -> [32m1208[m bytes
+ bin/Database.class                                 | Bin [31m0[m -> [32m12179[m bytes
+ bin/InventoryScreen$1.class                        | Bin [31m0[m -> [32m857[m bytes
+ bin/InventoryScreen$StatusRenderer.class           | Bin [31m0[m -> [32m1853[m bytes
+ bin/InventoryScreen.class                          | Bin [31m0[m -> [32m8285[m bytes
+ bin/Main$1.class                                   | Bin [31m0[m -> [32m1125[m bytes
+ bin/Main.class                                     | Bin [31m0[m -> [32m7030[m bytes
+ bin/Notify$1.class                                 | Bin [31m0[m -> [32m2029[m bytes
+ bin/Notify$2.class                                 | Bin [31m0[m -> [32m808[m bytes
+ bin/Notify$Badge.class                             | Bin [31m0[m -> [32m2433[m bytes
+ bin/Notify$Kind.class                              | Bin [31m0[m -> [32m1068[m bytes
+ bin/Notify.class                                   | Bin [31m0[m -> [32m10228[m bytes
+ bin/PosScreen$1.class                              | Bin [31m0[m -> [32m826[m bytes
+ bin/PosScreen$2.class                              | Bin [31m0[m -> [32m826[m bytes
+ bin/PosScreen$3.class                              | Bin [31m0[m -> [32m746[m bytes
+ bin/PosScreen.class                                | Bin [31m0[m -> [32m12376[m bytes
+ bin/Product.class                                  | Bin [31m0[m -> [32m992[m bytes
+ bin/ProductsScreen$1.class                         | Bin [31m0[m -> [32m851[m bytes
+ bin/ProductsScreen.class                           | Bin [31m0[m -> [32m11458[m bytes
+ bin/Receipt.class                                  | Bin [31m0[m -> [32m8423[m bytes
+ bin/Sale.class                                     | Bin [31m0[m -> [32m1491[m bytes
+ bin/Style$1$1.class                                | Bin [31m0[m -> [32m729[m bytes
+ bin/Style$1.class                                  | Bin [31m0[m -> [32m1891[m bytes
+ bin/Style$2.class                                  | Bin [31m0[m -> [32m772[m bytes
+ bin/Style$3.class                                  | Bin [31m0[m -> [32m633[m bytes
+ bin/Style$4.class                                  | Bin [31m0[m -> [32m1382[m bytes
+ bin/Style$5.class                                  | Bin [31m0[m -> [32m1477[m bytes
+ bin/Style$FlatTabsUI.class                         | Bin [31m0[m -> [32m3174[m bytes
+ bin/Style$RoundCombo$1.class                       | Bin [31m0[m -> [32m1073[m bytes
+ bin/Style$RoundCombo.class                         | Bin [31m0[m -> [32m1391[m bytes
+ bin/Style$RoundSpinner$1.class                     | Bin [31m0[m -> [32m996[m bytes
+ bin/Style$RoundSpinner.class                       | Bin [31m0[m -> [32m1217[m bytes
+ bin/Style$RoundedBorder.class                      | Bin [31m0[m -> [32m3011[m bytes
+ bin/Style$RoundedPanel.class                       | Bin [31m0[m -> [32m2113[m bytes
+ bin/Style$SlimScrollBarUI.class                    | Bin [31m0[m -> [32m2467[m bytes
+ bin/Style.class                                    | Bin [31m0[m -> [32m14787[m bytes
+ bin/TransactionsScreen$1.class                     | Bin [31m0[m -> [32m753[m bytes
+ bin/TransactionsScreen$2.class                     | Bin [31m0[m -> [32m879[m bytes
+ bin/TransactionsScreen.class                       | Bin [31m0[m -> [32m8212[m bytes
+ bin/dao/ProductDAO.class                           | Bin [31m0[m -> [32m1540[m bytes
+ bin/dao/TransactionDAO.class                       | Bin [31m0[m -> [32m1477[m bytes
+ bin/db/DBConnection.class                          | Bin [31m0[m -> [32m851[m bytes
+ bin/model/CartItem.class                           | Bin [31m0[m -> [32m1172[m bytes
+ bin/model/Product.class                            | Bin [31m0[m -> [32m1099[m bytes
+ bin/model/SaleTransaction.class                    | Bin [31m0[m -> [32m1547[m bytes
+ bin/stockbite/Main.class                           | Bin [31m0[m -> [32m3140[m bytes
+ bin/stockbite/dao/ProductDAO.class                 | Bin [31m0[m -> [32m7136[m bytes
+ bin/stockbite/dao/TransactionDAO.class             | Bin [31m0[m -> [32m7910[m bytes
+ bin/stockbite/db/DBConnection.class                | Bin [31m0[m -> [32m799[m bytes
+ bin/stockbite/model/CartItem.class                 | Bin [31m0[m -> [32m1240[m bytes
+ bin/stockbite/model/Product.class                  | Bin [31m0[m -> [32m1023[m bytes
+ bin/stockbite/model/SaleTransaction.class          | Bin [31m0[m -> [32m1600[m bytes
+ bin/stockbite/ui/InventoryPanel$1.class            | Bin [31m0[m -> [32m916[m bytes
+ .../ui/InventoryPanel$StatusRenderer.class         | Bin [31m0[m -> [32m1901[m bytes
+ bin/stockbite/ui/InventoryPanel.class              | Bin [31m0[m -> [32m8462[m bytes
+ bin/stockbite/ui/MainFrame$1.class                 | Bin [31m0[m -> [32m1233[m bytes
+ bin/stockbite/ui/MainFrame.class                   | Bin [31m0[m -> [32m4811[m bytes
+ bin/stockbite/ui/Notify$1.class                    | Bin [31m0[m -> [32m2107[m bytes
+ bin/stockbite/ui/Notify$2.class                    | Bin [31m0[m -> [32m873[m bytes
+ bin/stockbite/ui/Notify$Badge.class                | Bin [31m0[m -> [32m2550[m bytes
+ bin/stockbite/ui/Notify$Kind.class                 | Bin [31m0[m -> [32m1159[m bytes
+ bin/stockbite/ui/Notify.class                      | Bin [31m0[m -> [32m10423[m bytes
+ bin/stockbite/ui/POSPanel$1.class                  | Bin [31m0[m -> [32m885[m bytes
+ bin/stockbite/ui/POSPanel$2.class                  | Bin [31m0[m -> [32m885[m bytes
+ bin/stockbite/ui/POSPanel$3.class                  | Bin [31m0[m -> [32m805[m bytes
+ bin/stockbite/ui/POSPanel.class                    | Bin [31m0[m -> [32m12846[m bytes
+ bin/stockbite/ui/ProductPanel$1.class              | Bin [31m0[m -> [32m904[m bytes
+ bin/stockbite/ui/ProductPanel.class                | Bin [31m0[m -> [32m11627[m bytes
+ bin/stockbite/ui/ReceiptDialog.class               | Bin [31m0[m -> [32m7941[m bytes
+ bin/stockbite/ui/Theme$1$1.class                   | Bin [31m0[m -> [32m807[m bytes
+ bin/stockbite/ui/Theme$1.class                     | Bin [31m0[m -> [32m1956[m bytes
+ bin/stockbite/ui/Theme$2.class                     | Bin [31m0[m -> [32m672[m bytes
+ bin/stockbite/ui/Theme$3.class                     | Bin [31m0[m -> [32m1421[m bytes
+ bin/stockbite/ui/Theme$4.class                     | Bin [31m0[m -> [32m1516[m bytes
+ bin/stockbite/ui/Theme$SlimScrollBarUI.class       | Bin [31m0[m -> [32m2506[m bytes
+ bin/stockbite/ui/Theme.class                       | Bin [31m0[m -> [32m12873[m bytes
+ bin/stockbite/ui/TransactionPanel$1.class          | Bin [31m0[m -> [32m806[m bytes
+ bin/stockbite/ui/TransactionPanel$2.class          | Bin [31m0[m -> [32m932[m bytes
+ bin/stockbite/ui/TransactionPanel.class            | Bin [31m0[m -> [32m8529[m bytes
+ bin/stockbite/util/Format.class                    | Bin [31m0[m -> [32m2001[m bytes
+ bin/ui/InventoryPanel$StatusRenderer.class         | Bin [31m0[m -> [32m790[m bytes
+ bin/ui/InventoryPanel.class                        | Bin [31m0[m -> [32m1133[m bytes
+ bin/ui/MainFrame.class                             | Bin [31m0[m -> [32m629[m bytes
+ bin/ui/POSPanel.class                              | Bin [31m0[m -> [32m1996[m bytes
+ bin/ui/ProductPanel.class                          | Bin [31m0[m -> [32m1702[m bytes
+ bin/ui/ReceiptDialog.class                         | Bin [31m0[m -> [32m1030[m bytes
+ bin/ui/Theme.class                                 | Bin [31m0[m -> [32m1827[m bytes
+ bin/ui/TransactionPanel.class                      | Bin [31m0[m -> [32m1366[m bytes
+ bin/util/Format.class                              | Bin [31m0[m -> [32m919[m bytes
+ database/stockbite.sql                             |  49 [32m++[m
+ fonts/Inter-Bold.ttf                               | Bin [31m0[m -> [32m415072[m bytes
+ fonts/Inter-LICENSE.txt                            |  92 [32m++++[m
+ fonts/Inter-Regular.ttf                            | Bin [31m0[m -> [32m407056[m bytes
+ fonts/Inter-SemiBold.ttf                           | Bin [31m0[m -> [32m413976[m bytes
+ fonts/Lora-Bold.ttf                                | Bin [31m0[m -> [32m218640[m bytes
+ fonts/Lora-OFL.txt                                 |  93 [32m++++[m
+ fonts/Lora-Regular.ttf                             | Bin [31m0[m -> [32m198380[m bytes
+ fonts/Lora-SemiBold.ttf                            | Bin [31m0[m -> [32m218792[m bytes
+ lib/mysql-connector-j-8.4.0.jar                    | Bin [31m0[m -> [32m2533399[m bytes
+ src/Database.java                                  | 266 [32m+++++++++++[m
+ src/InventoryScreen.java                           | 128 [32m+++++[m
+ src/Main.java                                      | 117 [32m+++++[m
+ src/Notify.java                                    | 228 [32m+++++++++[m
+ src/PosScreen.java                                 | 238 [32m++++++++++[m
+ src/ProductsScreen.java                            | 193 [32m++++++++[m
+ src/Receipt.java                                   | 103 [32m++++[m
+ src/Style.java                                     | 526 [32m+++++++++++++++++++++[m
+ src/TransactionsScreen.java                        | 115 [32m+++++[m
+ src/stockbite/Main.java                            |  51 [32m++[m
+ src/stockbite/dao/ProductDAO.java                  |  98 [32m++++[m
+ src/stockbite/dao/TransactionDAO.java              | 106 [32m+++++[m
+ src/stockbite/db/DBConnection.java                 |  19 [32m+[m
+ src/stockbite/model/CartItem.java                  |  20 [32m+[m
+ src/stockbite/model/Product.java                   |  20 [32m+[m
+ src/stockbite/model/SaleTransaction.java           |  24 [32m+[m
+ src/stockbite/ui/InventoryPanel.java               | 135 [32m++++++[m
+ src/stockbite/ui/MainFrame.java                    |  73 [32m+++[m
+ src/stockbite/ui/Notify.java                       | 230 [32m+++++++++[m
+ src/stockbite/ui/POSPanel.java                     | 249 [32m++++++++++[m
+ src/stockbite/ui/ProductPanel.java                 | 200 [32m++++++++[m
+ src/stockbite/ui/ReceiptDialog.java                |  97 [32m++++[m
+ src/stockbite/ui/Theme.java                        | 343 [32m++++++++++++++[m
+ src/stockbite/ui/TransactionPanel.java             | 122 [32m+++++[m
+ src/stockbite/util/Format.java                     |  19 [32m+[m
+ 144 files changed, 5409 insertions(+)
