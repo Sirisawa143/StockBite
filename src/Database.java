@@ -45,6 +45,32 @@ public class Database {
         return list;
     }
 
+    /** Every category currently used by a product (e.g. Meals, Biscuits, Chips), A to Z. */
+    public static List<String> getCategories() throws SQLException {
+        List<String> list = new ArrayList<>();
+        try (Connection c = getConnection(); Statement st = c.createStatement();
+             ResultSet rs = st.executeQuery("SELECT DISTINCT category FROM products ORDER BY category")) {
+            while (rs.next()) list.add(rs.getString(1));
+        }
+        return list;
+    }
+
+    /**
+     * Looks up the category already used for a product name (case-insensitive).
+     * Returns null if this name has never been saved before.
+     */
+    public static String findCategoryByName(String name) throws SQLException {
+        if (name == null || name.trim().isEmpty()) return null;
+        String sql = "SELECT category FROM products WHERE LOWER(TRIM(product_name)) = LOWER(?) "
+                + "ORDER BY product_id DESC LIMIT 1";
+        try (Connection c = getConnection(); PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setString(1, name.trim());
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getString(1) : null;
+            }
+        }
+    }
+
     public static void addProduct(Product p) throws SQLException {
         String sql = "INSERT INTO products (product_name, category, price, stock) VALUES (?,?,?,?)";
         try (Connection c = getConnection(); PreparedStatement ps = c.prepareStatement(sql)) {

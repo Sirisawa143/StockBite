@@ -10,8 +10,11 @@ import java.sql.SQLException;
 public class ProductsScreen extends JPanel {
 
     private final JTextField txtName = new JTextField();
+    private static final String CATEGORY_PROMPT = "Select a category";
     private final JComboBox<String> cbCategory =
-            new Style.RoundCombo<>(new String[]{"Meals", "Snacks", "Drinks", "Desserts", "Others"});
+            new Style.RoundCombo<>(new String[]{CATEGORY_PROMPT, "Meals", "Snacks", "Drinks", "Desserts", "Others"});
+    private final JLabel lblCategoryHint = Style.hint(" ");
+    private final Timer categoryLookup = new Timer(250, e -> autoFillCategory());
     private final JTextField txtPrice = new JTextField();
     private final JSpinner spStock = new Style.RoundSpinner(new SpinnerNumberModel(0, 0, 100000, 1));
     private final JTextField txtSearch = new JTextField();
@@ -30,6 +33,14 @@ public class ProductsScreen extends JPanel {
         Style.styleField(txtSearch);
         Style.styleField(spStock);
         Style.styleField(cbCategory);
+
+        reloadCategories();
+        categoryLookup.setRepeats(false);
+        txtName.getDocument().addDocumentListener(new DocumentListener() {
+            public void insertUpdate(DocumentEvent e) { categoryLookup.restart(); }
+            public void removeUpdate(DocumentEvent e) { categoryLookup.restart(); }
+            public void changedUpdate(DocumentEvent e) { categoryLookup.restart(); }
+        });
 
         add(buildForm(), BorderLayout.WEST);
         add(buildTable(), BorderLayout.CENTER);
@@ -66,6 +77,10 @@ public class ProductsScreen extends JPanel {
             form.add(Style.label(labels[i]), g);
             g.gridy = y++; g.insets = new Insets(0, 0, Style.XS, 0);
             form.add(fields[i], g);
+            if (fields[i] == cbCategory) {
+                g.gridy = y++; g.insets = new Insets(0, 0, Style.XS, 0);
+                form.add(lblCategoryHint, g);
+            }
         }
 
         JButton add = Style.button("Add", Style.GREEN);
@@ -107,6 +122,47 @@ public class ProductsScreen extends JPanel {
         return p;
     }
 
+    /** Fills the dropdown with the default categories plus any category already in the database. */
+    private void reloadCategories() {
+        java.util.LinkedHashMap<String, String> items = new java.util.LinkedHashMap<>();
+        for (String c : new String[]{"Meals", "Snacks", "Drinks", "Desserts", "Others"}) items.put(c.toLowerCase(), c);
+        try {
+            for (String c : Database.getCategories()) items.putIfAbsent(c.toLowerCase(), c);
+        } catch (SQLException ex) { /* keep the defaults */ }
+        Object keep = cbCategory.getSelectedItem();
+        cbCategory.removeAllItems();
+        cbCategory.addItem(CATEGORY_PROMPT);
+        for (String c : items.values()) cbCategory.addItem(c);
+        cbCategory.setSelectedItem(keep == null ? CATEGORY_PROMPT : keep);
+    }
+
+    /**
+     * Auto-category: if this product name was saved before, use its category and lock the
+     * dropdown. If it is new, unlock the dropdown so the user picks a category (first time only).
+     * Does nothing while editing an existing row, so its category can still be changed.
+     */
+    private void autoFillCategory() {
+        if (selectedId >= 0) return;
+        String name = txtName.getText().trim();
+        String known = null;
+        if (!name.isEmpty()) {
+            try {
+                known = Database.findCategoryByName(name);
+            } catch (SQLException ex) {
+                known = null;   // can't reach the database: just let the user choose
+            }
+        }
+        if (known != null) {
+            cbCategory.setSelectedItem(known);
+            cbCategory.setEnabled(false);
+            lblCategoryHint.setText("Category filled in automatically.");
+        } else {
+            if (!cbCategory.isEnabled() || name.isEmpty()) cbCategory.setSelectedIndex(0);
+            cbCategory.setEnabled(true);
+            lblCategoryHint.setText(name.isEmpty() ? " " : "New product: please choose a category.");
+        }
+    }
+
     public void refresh() {
         try {
             model.setRowCount(0);
@@ -122,6 +178,9 @@ public class ProductsScreen extends JPanel {
         int row = table.getSelectedRow();
         if (row < 0) return;
         selectedId = (Integer) model.getValueAt(row, 0);
+        categoryLookup.stop();
+        cbCategory.setEnabled(true);
+        lblCategoryHint.setText(" ");
         txtName.setText(model.getValueAt(row, 1).toString());
         cbCategory.setSelectedItem(model.getValueAt(row, 2).toString());
         txtPrice.setText(model.getValueAt(row, 3).toString().replace("\u20B1", "").replace(",", ""));
@@ -133,7 +192,10 @@ public class ProductsScreen extends JPanel {
         txtName.setText("");
         txtPrice.setText("");
         spStock.setValue(0);
+        categoryLookup.stop();
+        cbCategory.setEnabled(true);
         cbCategory.setSelectedIndex(0);
+        lblCategoryHint.setText(" ");
         table.clearSelection();
         txtName.requestFocus();
     }
@@ -143,7 +205,16 @@ public class ProductsScreen extends JPanel {
         String name = txtName.getText().trim();
         String category = String.valueOf(cbCategory.getSelectedItem()).trim();
         if (name.isEmpty()) { Style.warn(this, "Please enter the product name."); return null; }
-        if (category.isEmpty()) { Style.warn(this, "Please enter a category."); return null; }
+        if (id == 0) {   // adding: a name saved before always keeps its earlier category
+            try {
+                String known = Database.findCategoryByName(name);
+                if (known != null) category = known;
+            } catch (SQLException ex) { /* fall back to what is selected */ }
+        }
+        if (category.isEmpty() || category.equals(CATEGORY_PROMPT)) {
+            Style.warn(this, "Please choose a category for this new product.");
+            return null;
+        }
         BigDecimal price;
         try {
             price = Style.parseMoney(txtPrice.getText());
@@ -161,6 +232,7 @@ public class ProductsScreen extends JPanel {
         if (p == null) return;
         try {
             Database.addProduct(p);
+            reloadCategories();
             clearForm();
             refresh();
             Style.info(this, "Product added.");
@@ -173,6 +245,7 @@ public class ProductsScreen extends JPanel {
         if (p == null) return;
         try {
             Database.updateProduct(p);
+            reloadCategories();
             clearForm();
             refresh();
             Style.info(this, "Product updated.");
