@@ -27,3 +27,4 @@ Java (Swing) + MySQL (XAMPP).
 6. Open src/Main.java and click Run.
 
 If your MySQL root user has a password, set it in src/Database.java (PASSWORD).
+This copy connects on port 3307 (see URL in src/Database.java); XAMPP MySQL must use the same port.
