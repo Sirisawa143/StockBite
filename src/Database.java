@@ -45,6 +45,26 @@ public class Database {
         return list;
     }
 
+    /** Lower-cases a name and collapses extra spaces, so "Adobong  Manok" and "adobong manok" match. */
+    private static String normalizeName(String name) {
+        return name == null ? "" : name.trim().replaceAll("\\s+", " ").toLowerCase();
+    }
+
+    /**
+     * True if another product already has this name, ignoring capital letters and extra spaces.
+     * Pass the product's own id when editing (so it doesn't clash with itself), or 0 when adding.
+     */
+    public static boolean productNameExists(String name, int excludeId) throws SQLException {
+        String wanted = normalizeName(name);
+        try (Connection c = getConnection(); Statement st = c.createStatement();
+             ResultSet rs = st.executeQuery("SELECT product_id, product_name FROM products")) {
+            while (rs.next()) {
+                if (rs.getInt(1) != excludeId && normalizeName(rs.getString(2)).equals(wanted)) return true;
+            }
+        }
+        return false;
+    }
+
     /** Every category currently used by a product (e.g. Meals, Biscuits, Chips), A to Z. */
     public static List<String> getCategories() throws SQLException {
         List<String> list = new ArrayList<>();

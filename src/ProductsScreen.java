@@ -27,7 +27,15 @@ public class ProductsScreen extends JPanel {
         setLayout(new BorderLayout(Style.XL, 0));
         setBackground(Style.BG);
         setBorder(BorderFactory.createEmptyBorder(Style.XL, Style.XL, Style.XL, Style.XL));
-        cbCategory.setEditable(true);
+        cbCategory.setEditable(false);   // choose from the list only, no typing
+        cbCategory.setRenderer(new DefaultListCellRenderer() {
+            @Override public Component getListCellRendererComponent(JList<?> list, Object value, int index,
+                                                                    boolean sel, boolean focus) {
+                JLabel l = (JLabel) super.getListCellRendererComponent(list, value, index, sel, focus);
+                l.setBorder(BorderFactory.createEmptyBorder(4, Style.MD, 4, Style.MD));
+                return l;
+            }
+        });
         Style.styleField(txtName);
         Style.styleField(txtPrice);
         Style.styleField(txtSearch);
@@ -205,6 +213,13 @@ public class ProductsScreen extends JPanel {
         String name = txtName.getText().trim();
         String category = String.valueOf(cbCategory.getSelectedItem()).trim();
         if (name.isEmpty()) { Style.warn(this, "Please enter the product name."); return null; }
+        try {
+            if (Database.productNameExists(name, id)) {
+                Style.warn(this, "A product named \"" + name + "\" already exists (capital letters and "
+                        + "extra spaces don't count as different).");
+                return null;
+            }
+        } catch (SQLException ex) { Style.error(this, ex); return null; }
         if (id == 0) {   // adding: a name saved before always keeps its earlier category
             try {
                 String known = Database.findCategoryByName(name);
