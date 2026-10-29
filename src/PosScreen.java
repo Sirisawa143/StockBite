@@ -1,6 +1,7 @@
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
@@ -12,6 +13,7 @@ import java.util.List;
 
 /** PosScreen.java - the Point of Sale tab: pick products, build the order, take cash, show the change, print the receipt. */
 public class PosScreen extends JPanel {
+    private static final Color OUT_OF_STOCK_TEXT = new Color(0x9A, 0xA0, 0x9E);
     private final List<CartItem> cart = new ArrayList<>();
 
     private final DefaultTableModel productModel = Style.model("ID", "Product", "Category", "Price", "Stock");
@@ -39,6 +41,8 @@ public class PosScreen extends JPanel {
             public void removeUpdate(DocumentEvent e) { loadProducts(); }
             public void changedUpdate(DocumentEvent e) { loadProducts(); }
         });
+        txtCash.addActionListener(e -> checkout());          // Enter in the cash box = Complete Purchase
+        txtSearch.addActionListener(e -> addFirstMatch());   // Enter in the search box = add first in-stock match
         txtCash.getDocument().addDocumentListener(new DocumentListener() {
             public void insertUpdate(DocumentEvent e) { updateChange(); }
             public void removeUpdate(DocumentEvent e) { updateChange(); }
@@ -58,6 +62,7 @@ public class PosScreen extends JPanel {
         p.add(search, BorderLayout.NORTH);
 
         Style.styleTable(productTable);
+        grayOutOfStockRows();
         Style.widths(productTable, 50, 210, 110, 90, 70);
         productTable.getColumnModel().getColumn(0).setMaxWidth(60);
         productTable.addMouseListener(new MouseAdapter() {
@@ -86,17 +91,23 @@ public class PosScreen extends JPanel {
         p.add(head, BorderLayout.NORTH);
 
         Style.styleTable(cartTable);
+        cartTable.addMouseListener(new MouseAdapter() {
+            @Override public void mouseClicked(MouseEvent e) { if (e.getClickCount() == 2) changeQuantity(); }
+        });
         Style.widths(cartTable, 200, 70, 100, 110);
         cartTable.getColumnModel().getColumn(1).setMaxWidth(80);
         p.add(Style.scroll(cartTable), BorderLayout.CENTER);
 
+        JButton updateQty = Style.button("Update Qty", Style.GREEN);
         JButton remove = Style.button("Remove Item", Style.RED);
         JButton clear = Style.button("Clear Cart", Style.GRAY);
+        updateQty.addActionListener(e -> changeQuantity());
         remove.addActionListener(e -> removeSelected());
         clear.addActionListener(e -> { cart.clear(); refreshCart(); });
         JPanel cartButtons = new JPanel(new FlowLayout(FlowLayout.LEFT, Style.MD, 0));
         cartButtons.setOpaque(false);
         cartButtons.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
+        cartButtons.add(updateQty);
         cartButtons.add(remove);
         cartButtons.add(clear);
 
@@ -155,19 +166,20 @@ public class PosScreen extends JPanel {
         return 0;
     }
 
-    private void addToCart() {
+    /** Adds the selected product to the cart. Returns true if it was added. */
+    private boolean addToCart() {
         int r = productTable.getSelectedRow();
-        if (r < 0) { Style.warn(this, "Select a product to add."); return; }
+        if (r < 0) { Style.warn(this, "Select a product to add."); return false; }
         int id = (Integer) productModel.getValueAt(r, 0);
         String name = productModel.getValueAt(r, 1).toString();
         BigDecimal price = Style.parseMoney(productModel.getValueAt(r, 3).toString().replace("\u20B1", ""));
         int stock = (Integer) productModel.getValueAt(r, 4);
         int qty = (Integer) spQty.getValue();
 
-        if (stock == 0) { Style.warn(this, name + " is out of stock."); return; }
+        if (stock == 0) { Style.warn(this, name + " is out of stock."); return false; }
         if (inCart(id) + qty > stock) {
             Style.warn(this, "Not enough stock for " + name + ".\nAvailable: " + stock + ", already in cart: " + inCart(id));
-            return;
+            return false;
         }
         boolean merged = false;
         for (CartItem c : cart) {
@@ -176,6 +188,106 @@ public class PosScreen extends JPanel {
         if (!merged) cart.add(new CartItem(id, name, price, qty));
         spQty.setValue(1);
         refreshCart();
+        return true;
+    }
+
+    /** Enter in the search box: adds the first matching product that is in stock, using the current quantity. */
+    private void addFirstMatch() {
+        for (int i = 0; i < productModel.getRowCount(); i++) {
+            if ((Integer) productModel.getValueAt(i, 4) > 0) {
+                productTable.setRowSelectionInterval(i, i);
+                if (addToCart()) {
+                    txtSearch.setText("");   // ready for the next item
+                    txtSearch.requestFocusInWindow();
+                }
+                return;
+            }
+        }
+        Style.warn(this, productModel.getRowCount() == 0
+                ? "No product matches your search."
+                : "The matching products are out of stock.");
+    }
+
+    /** Lets the cashier change the quantity of the selected cart line (checked against the real stock). */
+    private void changeQuantity() {
+        int r = cartTable.getSelectedRow();
+        if (r < 0) { Style.warn(this, "Select an item in the cart first."); return; }
+        CartItem item = cart.get(r);
+        int stock;
+        try {
+            stock = Database.getStock(item.getProductId());
+        } catch (SQLException e) { Style.error(this, e); return; }
+        if (stock <= 0) { Style.warn(this, item.getName() + " is no longer in stock."); return; }
+        Integer qty = askQuantity(item.getName(), Math.min(item.getQuantity(), stock), stock);
+        if (qty == null) return;
+        item.setQuantity(qty);
+        refreshCart();
+    }
+
+    /** Small window with a quantity spinner (1 to max). Returns null if cancelled. */
+    private Integer askQuantity(String name, int current, int max) {
+        final JDialog d = new JDialog(SwingUtilities.getWindowAncestor(this), "Update Quantity",
+                Dialog.ModalityType.APPLICATION_MODAL);
+        final Integer[] result = {null};
+        JSpinner sp = new Style.RoundSpinner(new SpinnerNumberModel(current, 1, max, 1));
+        Style.styleField(sp, 140);
+
+        JPanel body = new JPanel(new GridBagLayout());
+        body.setBackground(Style.BG);
+        body.setBorder(BorderFactory.createEmptyBorder(Style.XL, Style.XL, Style.XL, Style.XL));
+        GridBagConstraints g = new GridBagConstraints();
+        g.gridx = 0; g.gridwidth = 2; g.fill = GridBagConstraints.HORIZONTAL; g.weightx = 1;
+        g.gridy = 0; g.insets = new Insets(0, 0, Style.XS, 0);
+        body.add(Style.heading(name), g);
+        g.gridy = 1; g.insets = new Insets(0, 0, Style.LG, 0);
+        body.add(Style.hint("Available stock: " + max), g);
+        g.gridy = 2; g.gridwidth = 1; g.weightx = 0; g.insets = new Insets(0, 0, 0, Style.MD);
+        body.add(Style.label("Quantity"), g);
+        g.gridx = 1; g.weightx = 1; g.insets = new Insets(0, 0, 0, 0);
+        body.add(sp, g);
+
+        JButton save = Style.button("Save", Style.PRIMARY);
+        JButton cancel = Style.button("Cancel", Style.GRAY);
+        save.addActionListener(e -> {
+            try { sp.commitEdit(); } catch (java.text.ParseException ignored) { }
+            result[0] = (Integer) sp.getValue();
+            d.dispose();
+        });
+        cancel.addActionListener(e -> d.dispose());
+        JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, Style.MD, 0));
+        buttons.setBackground(Style.BG);
+        buttons.setBorder(BorderFactory.createEmptyBorder(0, Style.XL, Style.XL, Style.XL));
+        buttons.add(cancel);
+        buttons.add(save);
+
+        d.setLayout(new BorderLayout());
+        d.add(body, BorderLayout.CENTER);
+        d.add(buttons, BorderLayout.SOUTH);
+        d.getRootPane().setDefaultButton(save);
+        d.pack();
+        d.setSize(Math.max(d.getWidth(), 360), d.getHeight());
+        d.setLocationRelativeTo(this);
+        d.setVisible(true);
+        return result[0];
+    }
+
+    /** Same striped rows as the other tables, but out-of-stock products are shown in gray text. */
+    private void grayOutOfStockRows() {
+        DefaultTableCellRenderer renderer = new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable t, Object v, boolean sel, boolean foc, int r, int c) {
+                Component comp = super.getTableCellRendererComponent(t, v, sel, foc, r, c);
+                setHorizontalAlignment(SwingConstants.LEFT);
+                setBorder(BorderFactory.createEmptyBorder(0, Style.MD + 2, 0, Style.MD + 2));
+                if (!sel) comp.setBackground(r % 2 == 0 ? Style.WHITE : Style.STRIPE);
+                Object stock = t.getModel().getValueAt(t.convertRowIndexToModel(r), 4);
+                boolean out = stock instanceof Integer && (Integer) stock == 0;
+                comp.setForeground(out ? OUT_OF_STOCK_TEXT : Style.DARK);
+                return comp;
+            }
+        };
+        productTable.setDefaultRenderer(Object.class, renderer);
+        productTable.setDefaultRenderer(Number.class, renderer);
     }
 
     private void removeSelected() {

@@ -51,7 +51,7 @@ public class Receipt extends JDialog {
         StringBuilder sb = new StringBuilder();
         sb.append(center("STOCK BITE")).append('\n');
         sb.append(center("School Canteen")).append('\n');
-        sb.append(center("OFFICIAL RECEIPT")).append("\n\n");
+        sb.append(center("SALES RECEIPT")).append("\n\n");
         sb.append("Receipt No.: ").append(String.format("%06d", t.getId())).append('\n');
         sb.append("Date       : ").append(Style.date(t.getDate())).append('\n');
         sb.append("-".repeat(W)).append('\n');

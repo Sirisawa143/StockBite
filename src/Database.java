@@ -22,7 +22,61 @@ public class Database {
     private static final String PASSWORD = "";
 
     public static Connection getConnection() throws SQLException {
-        return DriverManager.getConnection(URL, USER, PASSWORD);
+        try {
+            return DriverManager.getConnection(URL, USER, PASSWORD);
+        } catch (SQLException e) {
+            // "No suitable driver" means the app was started without the MySQL connector JAR on its
+            // classpath. In that case load the JAR from the lib folder ourselves and connect with it.
+            if (e.getMessage() != null && e.getMessage().contains("No suitable driver")) {
+                Connection c = connectUsingLibFolder();
+                if (c != null) return c;
+            }
+            throw e;
+        }
+    }
+
+    private static Driver libDriver;
+
+    private static synchronized Connection connectUsingLibFolder() throws SQLException {
+        try {
+            if (libDriver == null) {
+                java.io.File jar = findConnectorJar();
+                if (jar == null) return null;
+                java.net.URLClassLoader loader = new java.net.URLClassLoader(
+                        new java.net.URL[]{jar.toURI().toURL()}, Database.class.getClassLoader());
+                libDriver = (Driver) Class.forName("com.mysql.cj.jdbc.Driver", true, loader)
+                        .getDeclaredConstructor().newInstance();
+            }
+            java.util.Properties props = new java.util.Properties();
+            props.setProperty("user", USER);
+            props.setProperty("password", PASSWORD);
+            return libDriver.connect(URL, props);
+        } catch (SQLException e) {
+            throw e;
+        } catch (Exception e) {
+            return null;   // could not load it either: the caller reports the original error
+        }
+    }
+
+    /** Looks for mysql-connector*.jar in the lib folder next to the project (or next to the compiled classes). */
+    private static java.io.File findConnectorJar() {
+        java.util.List<java.io.File> dirs = new ArrayList<>();
+        dirs.add(new java.io.File("lib"));
+        dirs.add(new java.io.File(System.getProperty("user.dir"), "lib"));
+        dirs.add(new java.io.File("StockBite/lib"));
+        try {
+            java.io.File here = new java.io.File(Database.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+            java.io.File base = here.isFile() ? here.getParentFile() : here;      // e.g. the bin folder
+            if (base != null) {
+                dirs.add(new java.io.File(base, "lib"));
+                if (base.getParentFile() != null) dirs.add(new java.io.File(base.getParentFile(), "lib"));
+            }
+        } catch (Exception ignored) { }
+        for (java.io.File d : dirs) {
+            java.io.File[] jars = d.listFiles((dir, name) -> name.startsWith("mysql-connector") && name.endsWith(".jar"));
+            if (jars != null && jars.length > 0) return jars[0];
+        }
+        return null;
     }
 
     // ---------- 2. Products ----------
@@ -91,26 +145,64 @@ public class Database {
         }
     }
 
-    public static void addProduct(Product p) throws SQLException {
+    /**
+     * Adds a product and returns its new id. If it starts with stock, that stock is also written to the
+     * stock history in the same transaction, so the history always matches the real stock.
+     */
+    public static int addProduct(Product p) throws SQLException {
         String sql = "INSERT INTO products (product_name, category, price, stock) VALUES (?,?,?,?)";
+        try (Connection c = getConnection()) {
+            c.setAutoCommit(false);
+            try {
+                int id;
+                try (PreparedStatement ps = c.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+                    ps.setString(1, p.getName());
+                    ps.setString(2, p.getCategory());
+                    ps.setBigDecimal(3, p.getPrice());
+                    ps.setInt(4, p.getStock());
+                    ps.executeUpdate();
+                    try (ResultSet keys = ps.getGeneratedKeys()) {
+                        keys.next();
+                        id = keys.getInt(1);
+                    }
+                }
+                if (p.getStock() > 0) {
+                    try (PreparedStatement log = c.prepareStatement(
+                            "INSERT INTO stock_log (product_id, quantity_added) VALUES (?,?)")) {
+                        log.setInt(1, id);
+                        log.setInt(2, p.getStock());
+                        log.executeUpdate();
+                    }
+                }
+                c.commit();
+                return id;
+            } catch (SQLException e) {
+                c.rollback();
+                throw e;
+            }
+        }
+    }
+
+    /** Updates name, category and price. Stock is NOT changed here: use addStock() so the history stays correct. */
+    public static void updateProduct(Product p) throws SQLException {
+        String sql = "UPDATE products SET product_name=?, category=?, price=? WHERE product_id=?";
         try (Connection c = getConnection(); PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setString(1, p.getName());
             ps.setString(2, p.getCategory());
             ps.setBigDecimal(3, p.getPrice());
-            ps.setInt(4, p.getStock());
+            ps.setInt(4, p.getId());
             ps.executeUpdate();
         }
     }
 
-    public static void updateProduct(Product p) throws SQLException {
-        String sql = "UPDATE products SET product_name=?, category=?, price=?, stock=? WHERE product_id=?";
-        try (Connection c = getConnection(); PreparedStatement ps = c.prepareStatement(sql)) {
-            ps.setString(1, p.getName());
-            ps.setString(2, p.getCategory());
-            ps.setBigDecimal(3, p.getPrice());
-            ps.setInt(4, p.getStock());
-            ps.setInt(5, p.getId());
-            ps.executeUpdate();
+    /** Current stock of one product straight from the database, or -1 if it no longer exists. */
+    public static int getStock(int productId) throws SQLException {
+        try (Connection c = getConnection();
+             PreparedStatement ps = c.prepareStatement("SELECT stock FROM products WHERE product_id=?")) {
+            ps.setInt(1, productId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt(1) : -1;
+            }
         }
     }
 
@@ -289,6 +381,7 @@ class CartItem {
     BigDecimal getPrice() { return price; }
     int getQuantity() { return quantity; }
     void addQuantity(int q) { quantity += q; }
+    void setQuantity(int q) { quantity = q; }
     BigDecimal getSubtotal() { return price.multiply(BigDecimal.valueOf(quantity)); }
 }
 

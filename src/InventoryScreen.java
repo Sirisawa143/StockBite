@@ -15,6 +15,7 @@ public class InventoryScreen extends JPanel {
     private final JTable logTable = new JTable(logModel);
     private final JTextField txtSearch = new JTextField();
     private final JLabel lblSelected = new JLabel("No product selected");
+    private final JLabel lblBanner = new JLabel(" ");
     private final JSpinner spQty = new Style.RoundSpinner(new SpinnerNumberModel(1, 1, 100000, 1));
 
     public InventoryScreen() {
@@ -48,9 +49,19 @@ public class InventoryScreen extends JPanel {
         stockIn.add(spQty);
         stockIn.add(add);
 
+        lblBanner.setFont(Style.BOLD);
+        JPanel banner = Style.card(Style.MD);
+        banner.setLayout(new BorderLayout());
+        banner.add(lblBanner, BorderLayout.CENTER);
+
+        JPanel north = new JPanel(new BorderLayout(0, Style.LG));
+        north.setOpaque(false);
+        north.add(banner, BorderLayout.NORTH);
+        north.add(search, BorderLayout.CENTER);
+
         JPanel top = new JPanel(new BorderLayout(0, Style.LG));
         top.setOpaque(false);
-        top.add(search, BorderLayout.NORTH);
+        top.add(north, BorderLayout.NORTH);
         top.add(Style.scroll(table), BorderLayout.CENTER);
         top.add(stockIn, BorderLayout.SOUTH);
 
@@ -94,9 +105,28 @@ public class InventoryScreen extends JPanel {
             }
             logModel.setRowCount(0);
             for (Object[] row : Database.getStockLog()) logModel.addRow(row);
+            updateBanner();
         } catch (SQLException e) {
             Style.error(this, e);
         }
+    }
+
+    /** Counts low and out-of-stock products across ALL products (not only the searched ones). */
+    private void updateBanner() throws SQLException {
+        int low = 0, out = 0;
+        for (Product p : Database.searchProducts("")) {
+            if (p.getStock() == 0) out++;
+            else if (p.getStock() <= LOW_STOCK) low++;
+        }
+        StringBuilder sb = new StringBuilder();
+        if (low > 0) sb.append(low).append(low == 1 ? " item" : " items").append(" low on stock");
+        if (out > 0) {
+            if (sb.length() > 0) sb.append(", ");
+            sb.append(out).append(out == 1 ? " item" : " items").append(" out of stock");
+        }
+        if (sb.length() == 0) sb.append("All items well stocked");
+        lblBanner.setText(sb.toString());
+        lblBanner.setForeground(out > 0 ? Style.TEXT_RED : low > 0 ? Style.TEXT_ORANGE : Style.TEXT_GREEN);
     }
 
     private void addStock() {

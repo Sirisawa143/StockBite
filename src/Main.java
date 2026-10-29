@@ -14,12 +14,12 @@ public class Main extends JFrame {
     private final InventoryScreen inventory = new InventoryScreen();
     private final TransactionsScreen transactions = new TransactionsScreen();
 
-    public Main() {
-        super("Stock Bite - Canteen Management System");
-        setDefaultCloseOperation(EXIT_ON_CLOSE);
-        setSize(1240, 740);
-        setMinimumSize(new Dimension(1060, 660));
-        setLocationRelativeTo(null);
+  public Main() {
+    super("Stock Bite - Canteen Management System");
+
+    setUndecorated(true);
+    setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
+    setExtendedState(JFrame.MAXIMIZED_BOTH);
 
         // header
         JPanel header = new JPanel(new BorderLayout()) {
@@ -52,7 +52,13 @@ public class Main extends JFrame {
         JLabel date = new JLabel(LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy")));
         date.setFont(Style.BOLD.deriveFont(14f));
         date.setForeground(Color.WHITE);
-        header.add(date, BorderLayout.EAST);
+        JButton logout = Style.button("Logout", Style.CREAM);
+        logout.addActionListener(e -> logout());
+        JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, Style.LG, 0));
+        right.setOpaque(false);
+        right.add(date);
+        right.add(logout);
+        header.add(right, BorderLayout.EAST);
 
         // tabs
         JTabbedPane tabs = new JTabbedPane();
@@ -77,6 +83,20 @@ public class Main extends JFrame {
         setLayout(new BorderLayout());
         add(header, BorderLayout.NORTH);
         add(tabs, BorderLayout.CENTER);
+    }
+
+    /** Asks to log out, then shows the login again; a new main window opens after a successful login. */
+    private void logout() {
+        if (!Style.confirm(this, "Log out?", "You will return to the login screen.\nAny unfinished order will be cleared.", "Log out")) return;
+        setVisible(false);
+        LoginScreen login = new LoginScreen(null);
+        login.setVisible(true);
+        if (login.isSuccess()) {
+            dispose();
+            new Main().setVisible(true);
+        } else {
+            System.exit(0);
+        }
     }
 
     public static void main(String[] args) {
@@ -111,6 +131,9 @@ public class Main extends JFrame {
             UIManager.put("TabbedPane.tabAreaInsets", new Insets(10, 24, 0, 24));
             UIManager.put("TabbedPane.contentBorderInsets", new Insets(2, 0, 0, 0));
 
+            LoginScreen login = new LoginScreen(null);
+            login.setVisible(true);
+            if (!login.isSuccess()) System.exit(0);
             new Main().setVisible(true);
         });
     }

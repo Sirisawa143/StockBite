@@ -14,6 +14,7 @@ public class ProductsScreen extends JPanel {
     private final JComboBox<String> cbCategory =
             new Style.RoundCombo<>(new String[]{CATEGORY_PROMPT, "Meals", "Snacks", "Drinks", "Desserts", "Others"});
     private final JLabel lblCategoryHint = Style.hint(" ");
+    private final JLabel lblStockHint = Style.hint(" ");
     private final Timer categoryLookup = new Timer(250, e -> autoFillCategory());
     private final JTextField txtPrice = new JTextField();
     private final JSpinner spStock = new Style.RoundSpinner(new SpinnerNumberModel(0, 0, 100000, 1));
@@ -88,6 +89,10 @@ public class ProductsScreen extends JPanel {
             if (fields[i] == cbCategory) {
                 g.gridy = y++; g.insets = new Insets(0, 0, Style.XS, 0);
                 form.add(lblCategoryHint, g);
+            }
+            if (fields[i] == spStock) {
+                g.gridy = y++; g.insets = new Insets(0, 0, Style.XS, 0);
+                form.add(lblStockHint, g);
             }
         }
 
@@ -193,6 +198,8 @@ public class ProductsScreen extends JPanel {
         cbCategory.setSelectedItem(model.getValueAt(row, 2).toString());
         txtPrice.setText(model.getValueAt(row, 3).toString().replace("\u20B1", "").replace(",", ""));
         spStock.setValue(model.getValueAt(row, 4));
+        spStock.setEnabled(false);   // stock changes only through the Inventory tab, so the history stays correct
+        lblStockHint.setText("Use the Inventory tab to add stock.");
     }
 
     private void clearForm() {
@@ -200,6 +207,8 @@ public class ProductsScreen extends JPanel {
         txtName.setText("");
         txtPrice.setText("");
         spStock.setValue(0);
+        spStock.setEnabled(true);
+        lblStockHint.setText(" ");
         categoryLookup.stop();
         cbCategory.setEnabled(true);
         cbCategory.setSelectedIndex(0);
@@ -270,7 +279,7 @@ public class ProductsScreen extends JPanel {
     private void deleteProduct() {
         if (selectedId < 0) { Style.warn(this, "Select a product from the table first."); return; }
         boolean ok = Style.confirm(this, "Delete product?",
-                "\"" + txtName.getText() + "\" will be removed.\nPast transaction records will be kept.", "Delete");
+                "\"" + txtName.getText() + "\" will be removed.\nPast transaction records will be kept, but its stock-in history will be removed.", "Delete");
         if (!ok) return;
         try {
             Database.deleteProduct(selectedId);

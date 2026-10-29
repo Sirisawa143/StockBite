@@ -1,7 +1,6 @@
 {
   "java.project.sourcePaths": [
-    "src",
-    "StockBite/src/stockbite"
+    "src"
   ],
   "java.project.outputPath": "bin",
   "java.project.referencedLibraries": ["lib/**/*.jar"]
