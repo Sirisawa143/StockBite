@@ -4,10 +4,6 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 
-/**
- * Main.java - start here. Run this file to open Stock Bite.
- * It builds the main window: the orange header and the four tabs.
- */
 public class Main extends JFrame {
     private final PosScreen pos = new PosScreen();
     private final ProductsScreen products = new ProductsScreen();
@@ -21,7 +17,6 @@ public class Main extends JFrame {
     setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
     setExtendedState(JFrame.MAXIMIZED_BOTH);
 
-        // header
         JPanel header = new JPanel(new BorderLayout()) {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
@@ -60,7 +55,6 @@ public class Main extends JFrame {
         right.add(logout);
         header.add(right, BorderLayout.EAST);
 
-        // tabs
         JTabbedPane tabs = new JTabbedPane();
         tabs.setUI(new Style.FlatTabsUI());
         tabs.setOpaque(false);
@@ -72,7 +66,7 @@ public class Main extends JFrame {
         tabs.addTab("Products", products);
         tabs.addTab("Inventory", inventory);
         tabs.addTab("Transactions", transactions);
-        tabs.addChangeListener(e -> {          // reload the data when you open a tab
+        tabs.addChangeListener(e -> {
             Component c = tabs.getSelectedComponent();
             if (c == pos) pos.refresh();
             else if (c == products) products.refresh();
@@ -85,7 +79,6 @@ public class Main extends JFrame {
         add(tabs, BorderLayout.CENTER);
     }
 
-    /** Asks to log out, then shows the login again; a new main window opens after a successful login. */
     private void logout() {
         if (!Style.confirm(this, "Log out?", "You will return to the login screen.\nAny unfinished order will be cleared.", "Log out")) return;
         setVisible(false);
@@ -105,12 +98,10 @@ public class Main extends JFrame {
                 UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
             } catch (Exception ignored) { }
 
-            // use the Inter font everywhere
             for (Object key : Collections.list(UIManager.getDefaults().keys())) {
                 if (key.toString().endsWith(".font")) UIManager.put(key, Style.BASE);
             }
 
-            // colors and tab spacing
             Color dark = Style.DARK;
             UIManager.put("Panel.background", Style.BG);
             UIManager.put("OptionPane.background", Color.WHITE);

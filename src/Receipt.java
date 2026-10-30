@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 
-/** Receipt.java - the receipt window (items, quantities, prices, total, cash received, change). */
 public class Receipt extends JDialog {
     private static final int W = 44;
 
@@ -20,8 +19,6 @@ public class Receipt extends JDialog {
         area.setBackground(new Color(0xFF, 0xFD, 0xF6));
         area.setForeground(Style.DARK);
 
-        JButton print = Style.button("Print", Style.MINT);
-        print.addActionListener(e -> printReceipt(area));
         JButton save = Style.button("Save as .txt", Style.GRAY);
         save.addActionListener(e -> saveToFile(t.getId(), text));
         JButton close = Style.button("Close", Style.PRIMARY);
@@ -30,7 +27,6 @@ public class Receipt extends JDialog {
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, Style.MD, 0));
         buttons.setBackground(Style.BG);
         buttons.setBorder(BorderFactory.createEmptyBorder(Style.LG, Style.XL, Style.LG, Style.XL));
-        buttons.add(print);
         buttons.add(save);
         buttons.add(close);
 
@@ -66,8 +62,7 @@ public class Receipt extends JDialog {
         sb.append(line("TOTAL", t.getTotal()));
         sb.append(line("CASH RECEIVED", t.getCash()));
         sb.append(line("CHANGE", t.getChange()));
-        sb.append("-".repeat(W)).append("\n\n");
-        sb.append(center("Thank you! Please come again.")).append('\n');
+        sb.append("-".repeat(W)).append('\n');
         return sb.toString();
     }
 
@@ -78,15 +73,6 @@ public class Receipt extends JDialog {
     private static String center(String s) {
         int pad = Math.max(0, (W - s.length()) / 2);
         return " ".repeat(pad) + s;
-    }
-
-    /** Opens the normal Print window (any printer works, including "Microsoft Print to PDF"). */
-    private void printReceipt(JTextArea area) {
-        try {
-            area.print(null, null, true, null, null, true);
-        } catch (java.awt.print.PrinterException ex) {
-            Style.warn(this, "Could not print the receipt: " + ex.getMessage());
-        }
     }
 
     private void saveToFile(int id, String text) {

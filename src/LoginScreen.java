@@ -7,10 +7,6 @@ import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.Properties;
 
-/**
- * LoginScreen.java - the admin login window shown before the main window.
- * There is one admin account only. Its login is kept in admin.properties (not in the database).
- */
 public class LoginScreen extends JDialog {
     private final JTextField txtUser = new JTextField();
     private final JPasswordField txtPass = new JPasswordField();
@@ -29,21 +25,20 @@ public class LoginScreen extends JDialog {
         txtUser.setPreferredSize(new Dimension(10, 48));
         txtPass.setPreferredSize(new Dimension(10, 48));
 
-        // ---------- left: brand panel ----------
         JPanel brand = new JPanel(null) {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setPaint(new GradientPaint(0, 0, Style.PEACH, getWidth(), getHeight(), Style.HEADER));
                 g2.fillRect(0, 0, getWidth(), getHeight());
-                // soft decorative circles
+
                 g2.setColor(new Color(255, 255, 255, 34));
                 g2.fillOval(-90, getHeight() - 210, 300, 300);
                 g2.setColor(new Color(255, 236, 178, 46));
                 g2.fillOval(getWidth() - 130, -80, 240, 240);
                 g2.setColor(new Color(255, 255, 255, 26));
                 g2.fillOval(getWidth() - 200, getHeight() - 130, 170, 170);
-                // mint stripe on the edge, like the header of the main window
+
                 g2.setColor(Style.MINT);
                 g2.fillRect(getWidth() - 6, 0, 6, getHeight());
                 g2.dispose();
@@ -87,7 +82,6 @@ public class LoginScreen extends JDialog {
         footer.setBorder(BorderFactory.createEmptyBorder(0, 0, 34, 0));
         brand.add(footer, b);
 
-        // ---------- right: form ----------
         JPanel form = new JPanel(new GridBagLayout());
         form.setBackground(Style.BG);
         form.setBorder(BorderFactory.createEmptyBorder(Style.XL, 52, Style.XL, 52));
@@ -135,7 +129,7 @@ public class LoginScreen extends JDialog {
         root.add(brand, BorderLayout.WEST);
         root.add(form, BorderLayout.CENTER);
         setContentPane(root);
-        getRootPane().setDefaultButton(login);   // Enter = Log In
+        getRootPane().setDefaultButton(login);
         setSize(860, 540);
         setLocationRelativeTo(owner);
         SwingUtilities.invokeLater(txtUser::requestFocusInWindow);
@@ -157,11 +151,6 @@ public class LoginScreen extends JDialog {
     }
 }
 
-/**
- * Keeps the single admin login in admin.properties (username, salt, hash). The password is stored as a
- * salted SHA-256 hash. Created with admin / admin123 on first run. To change the password, write a line
- * "password=newpassword" in the file: it is hashed and removed the next time the app starts.
- */
 final class Auth {
     private static final File FILE = new File("admin.properties");
     private static final String DEFAULT_USER = "admin";
@@ -182,7 +171,6 @@ final class Auth {
         }
     }
 
-    /** Reads admin.properties, creating it or hashing a newly typed password when needed. */
     private static Properties load() throws Exception {
         Properties p = new Properties();
         if (FILE.isFile()) {

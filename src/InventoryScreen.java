@@ -6,7 +6,6 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.sql.SQLException;
 
-/** InventoryScreen.java - the Inventory tab: see stock levels, add stock, and view the stock-in history. */
 public class InventoryScreen extends JPanel {
     public static final int LOW_STOCK = 10;
     private final DefaultTableModel model = Style.model("ID", "Product Name", "Category", "Stock", "Status");
@@ -111,7 +110,6 @@ public class InventoryScreen extends JPanel {
         }
     }
 
-    /** Counts low and out-of-stock products across ALL products (not only the searched ones). */
     private void updateBanner() throws SQLException {
         int low = 0, out = 0;
         for (Product p : Database.searchProducts("")) {

@@ -11,7 +11,6 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-/** PosScreen.java - the Point of Sale tab: pick products, build the order, take cash, show the change, print the receipt. */
 public class PosScreen extends JPanel {
     private static final Color OUT_OF_STOCK_TEXT = new Color(0x9A, 0xA0, 0x9E);
     private final List<CartItem> cart = new ArrayList<>();
@@ -41,8 +40,8 @@ public class PosScreen extends JPanel {
             public void removeUpdate(DocumentEvent e) { loadProducts(); }
             public void changedUpdate(DocumentEvent e) { loadProducts(); }
         });
-        txtCash.addActionListener(e -> checkout());          // Enter in the cash box = Complete Purchase
-        txtSearch.addActionListener(e -> addFirstMatch());   // Enter in the search box = add first in-stock match
+        txtCash.addActionListener(e -> checkout());
+        txtSearch.addActionListener(e -> addFirstMatch());
         txtCash.getDocument().addDocumentListener(new DocumentListener() {
             public void insertUpdate(DocumentEvent e) { updateChange(); }
             public void removeUpdate(DocumentEvent e) { updateChange(); }
@@ -166,7 +165,6 @@ public class PosScreen extends JPanel {
         return 0;
     }
 
-    /** Adds the selected product to the cart. Returns true if it was added. */
     private boolean addToCart() {
         int r = productTable.getSelectedRow();
         if (r < 0) { Style.warn(this, "Select a product to add."); return false; }
@@ -191,13 +189,12 @@ public class PosScreen extends JPanel {
         return true;
     }
 
-    /** Enter in the search box: adds the first matching product that is in stock, using the current quantity. */
     private void addFirstMatch() {
         for (int i = 0; i < productModel.getRowCount(); i++) {
             if ((Integer) productModel.getValueAt(i, 4) > 0) {
                 productTable.setRowSelectionInterval(i, i);
                 if (addToCart()) {
-                    txtSearch.setText("");   // ready for the next item
+                    txtSearch.setText("");
                     txtSearch.requestFocusInWindow();
                 }
                 return;
@@ -208,7 +205,6 @@ public class PosScreen extends JPanel {
                 : "The matching products are out of stock.");
     }
 
-    /** Lets the cashier change the quantity of the selected cart line (checked against the real stock). */
     private void changeQuantity() {
         int r = cartTable.getSelectedRow();
         if (r < 0) { Style.warn(this, "Select an item in the cart first."); return; }
@@ -224,12 +220,11 @@ public class PosScreen extends JPanel {
         refreshCart();
     }
 
-    /** Small window with a quantity spinner (1 to max). Returns null if cancelled. */
     private Integer askQuantity(String name, int current, int max) {
         final JDialog d = new JDialog(SwingUtilities.getWindowAncestor(this), "Update Quantity",
                 Dialog.ModalityType.APPLICATION_MODAL);
         final Integer[] result = {null};
-        JSpinner sp = new Style.RoundSpinner(new SpinnerNumberModel(current, 1, max, 1));
+        JSpinner sp = new Style.RoundSpinner(new SpinnerNumberModel(current, 1, 100000, 1));
         Style.styleField(sp, 140);
 
         JPanel body = new JPanel(new GridBagLayout());
@@ -250,7 +245,13 @@ public class PosScreen extends JPanel {
         JButton cancel = Style.button("Cancel", Style.GRAY);
         save.addActionListener(e -> {
             try { sp.commitEdit(); } catch (java.text.ParseException ignored) { }
-            result[0] = (Integer) sp.getValue();
+            int entered = (Integer) sp.getValue();
+            if (entered > max) {
+                Style.warn(d, "Quantity exceeds the available stock of " + max + " for " + name + ".");
+                sp.setValue(max);
+                return;
+            }
+            result[0] = entered;
             d.dispose();
         });
         cancel.addActionListener(e -> d.dispose());
@@ -271,7 +272,6 @@ public class PosScreen extends JPanel {
         return result[0];
     }
 
-    /** Same striped rows as the other tables, but out-of-stock products are shown in gray text. */
     private void grayOutOfStockRows() {
         DefaultTableCellRenderer renderer = new DefaultTableCellRenderer() {
             @Override

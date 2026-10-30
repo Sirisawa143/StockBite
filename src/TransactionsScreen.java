@@ -16,7 +16,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/** TransactionsScreen.java - the Transactions tab: list of completed sales, with receipts. */
 public class TransactionsScreen extends JPanel {
     private final DefaultTableModel model = Style.model("Receipt No.", "Date", "Total", "Cash Received", "Change");
     private final JTable table = new JTable(model);
@@ -55,7 +54,7 @@ public class TransactionsScreen extends JPanel {
         Style.styleTable(table);
         table.setRowSorter(sorter);
         sorter.setComparator(0, (a, b) -> Integer.compare((Integer) a, (Integer) b));
-        // show the receipt number with 6 digits (000012), the same as on the printed receipt
+
         final TableCellRenderer base = table.getDefaultRenderer(Number.class);
         table.getColumnModel().getColumn(0).setCellRenderer((t, v, sel, foc, r, c) ->
                 base.getTableCellRendererComponent(t, v instanceof Integer ? receiptNo((Integer) v) : v, sel, foc, r, c));
@@ -94,7 +93,6 @@ public class TransactionsScreen extends JPanel {
 
     private static String receiptNo(int id) { return String.format("%06d", id); }
 
-    /** True if the sale falls inside the chosen period (Today, Last 7 Days, This Month, All). */
     private boolean inPeriod(LocalDateTime d) {
         String period = String.valueOf(cbPeriod.getSelectedItem());
         LocalDate today = LocalDate.now();
@@ -115,9 +113,9 @@ public class TransactionsScreen extends JPanel {
                 Sale sale = byId.get(id);
                 if (sale != null && !inPeriod(sale.getDate())) return false;
                 if (q.isEmpty()) return true;
-                return receiptNo(id).contains(q)                      // "000012" or part of it
-                        || String.valueOf(id).equals(q)               // "12"
-                        || entry.getStringValue(1).toLowerCase().contains(q);   // date text
+                return receiptNo(id).contains(q)
+                        || String.valueOf(id).equals(q)
+                        || entry.getStringValue(1).toLowerCase().contains(q);
             }
         });
         updateSummary();

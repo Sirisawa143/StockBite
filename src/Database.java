@@ -4,18 +4,8 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Database.java - everything that talks to MySQL (XAMPP) is in this one file.
- *
- *   1. Connection settings
- *   2. Product queries   (search, add, update, delete)
- *   3. Stock queries     (add stock, stock history)
- *   4. Sales queries     (checkout, transaction list, receipt items)
- *   5. Small data classes at the bottom (Product, CartItem, Sale)
- */
 public class Database {
 
-    // ---------- 1. Connection settings (change PASSWORD if your MySQL root has one) ----------
     private static final String URL =
             "jdbc:mysql://localhost:3307/stockbite_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Manila";
     private static final String USER = "root";
@@ -25,8 +15,7 @@ public class Database {
         try {
             return DriverManager.getConnection(URL, USER, PASSWORD);
         } catch (SQLException e) {
-            // "No suitable driver" means the app was started without the MySQL connector JAR on its
-            // classpath. In that case load the JAR from the lib folder ourselves and connect with it.
+
             if (e.getMessage() != null && e.getMessage().contains("No suitable driver")) {
                 Connection c = connectUsingLibFolder();
                 if (c != null) return c;
@@ -54,11 +43,10 @@ public class Database {
         } catch (SQLException e) {
             throw e;
         } catch (Exception e) {
-            return null;   // could not load it either: the caller reports the original error
+            return null;
         }
     }
 
-    /** Looks for mysql-connector*.jar in the lib folder next to the project (or next to the compiled classes). */
     private static java.io.File findConnectorJar() {
         java.util.List<java.io.File> dirs = new ArrayList<>();
         dirs.add(new java.io.File("lib"));
@@ -66,7 +54,7 @@ public class Database {
         dirs.add(new java.io.File("StockBite/lib"));
         try {
             java.io.File here = new java.io.File(Database.class.getProtectionDomain().getCodeSource().getLocation().toURI());
-            java.io.File base = here.isFile() ? here.getParentFile() : here;      // e.g. the bin folder
+            java.io.File base = here.isFile() ? here.getParentFile() : here;
             if (base != null) {
                 dirs.add(new java.io.File(base, "lib"));
                 if (base.getParentFile() != null) dirs.add(new java.io.File(base.getParentFile(), "lib"));
@@ -79,9 +67,6 @@ public class Database {
         return null;
     }
 
-    // ---------- 2. Products ----------
-
-    /** Returns every product, or only the ones whose name or category contains the keyword. */
     public static List<Product> searchProducts(String keyword) throws SQLException {
         String sql = "SELECT * FROM products WHERE product_name LIKE ? OR category LIKE ? ORDER BY product_name";
         List<Product> list = new ArrayList<>();
@@ -99,15 +84,10 @@ public class Database {
         return list;
     }
 
-    /** Lower-cases a name and collapses extra spaces, so "Adobong  Manok" and "adobong manok" match. */
     private static String normalizeName(String name) {
         return name == null ? "" : name.trim().replaceAll("\\s+", " ").toLowerCase();
     }
 
-    /**
-     * True if another product already has this name, ignoring capital letters and extra spaces.
-     * Pass the product's own id when editing (so it doesn't clash with itself), or 0 when adding.
-     */
     public static boolean productNameExists(String name, int excludeId) throws SQLException {
         String wanted = normalizeName(name);
         try (Connection c = getConnection(); Statement st = c.createStatement();
@@ -119,7 +99,6 @@ public class Database {
         return false;
     }
 
-    /** Every category currently used by a product (e.g. Meals, Biscuits, Chips), A to Z. */
     public static List<String> getCategories() throws SQLException {
         List<String> list = new ArrayList<>();
         try (Connection c = getConnection(); Statement st = c.createStatement();
@@ -129,10 +108,6 @@ public class Database {
         return list;
     }
 
-    /**
-     * Looks up the category already used for a product name (case-insensitive).
-     * Returns null if this name has never been saved before.
-     */
     public static String findCategoryByName(String name) throws SQLException {
         if (name == null || name.trim().isEmpty()) return null;
         String sql = "SELECT category FROM products WHERE LOWER(TRIM(product_name)) = LOWER(?) "
@@ -145,10 +120,6 @@ public class Database {
         }
     }
 
-    /**
-     * Adds a product and returns its new id. If it starts with stock, that stock is also written to the
-     * stock history in the same transaction, so the history always matches the real stock.
-     */
     public static int addProduct(Product p) throws SQLException {
         String sql = "INSERT INTO products (product_name, category, price, stock) VALUES (?,?,?,?)";
         try (Connection c = getConnection()) {
@@ -183,19 +154,53 @@ public class Database {
         }
     }
 
-    /** Updates name, category and price. Stock is NOT changed here: use addStock() so the history stays correct. */
     public static void updateProduct(Product p) throws SQLException {
-        String sql = "UPDATE products SET product_name=?, category=?, price=? WHERE product_id=?";
-        try (Connection c = getConnection(); PreparedStatement ps = c.prepareStatement(sql)) {
-            ps.setString(1, p.getName());
-            ps.setString(2, p.getCategory());
-            ps.setBigDecimal(3, p.getPrice());
-            ps.setInt(4, p.getId());
-            ps.executeUpdate();
+        String sql = "UPDATE products SET product_name=?, category=?, price=?, stock=? WHERE product_id=?";
+        try (Connection c = getConnection()) {
+            c.setAutoCommit(false);
+            try {
+                int oldStock = 0;
+                try (PreparedStatement q = c.prepareStatement("SELECT stock FROM products WHERE product_id=? FOR UPDATE")) {
+                    q.setInt(1, p.getId());
+                    try (ResultSet rs = q.executeQuery()) {
+                        if (rs.next()) oldStock = rs.getInt(1);
+                    }
+                }
+                try (PreparedStatement ps = c.prepareStatement(sql)) {
+                    ps.setString(1, p.getName());
+                    ps.setString(2, p.getCategory());
+                    ps.setBigDecimal(3, p.getPrice());
+                    ps.setInt(4, p.getStock());
+                    ps.setInt(5, p.getId());
+                    ps.executeUpdate();
+                }
+                int diff = p.getStock() - oldStock;
+                if (diff != 0) {
+                    try (PreparedStatement log = c.prepareStatement(
+                            "INSERT INTO stock_log (product_id, quantity_added) VALUES (?,?)")) {
+                        log.setInt(1, p.getId());
+                        log.setInt(2, diff);
+                        log.executeUpdate();
+                    }
+                }
+                c.commit();
+            } catch (SQLException e) {
+                c.rollback();
+                throw e;
+            }
         }
     }
 
-    /** Current stock of one product straight from the database, or -1 if it no longer exists. */
+    public static String getCategory(int productId) throws SQLException {
+        try (Connection c = getConnection();
+             PreparedStatement ps = c.prepareStatement("SELECT category FROM products WHERE product_id=?")) {
+            ps.setInt(1, productId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getString(1) : null;
+            }
+        }
+    }
+
     public static int getStock(int productId) throws SQLException {
         try (Connection c = getConnection();
              PreparedStatement ps = c.prepareStatement("SELECT stock FROM products WHERE product_id=?")) {
@@ -214,9 +219,6 @@ public class Database {
         }
     }
 
-    // ---------- 3. Stock ----------
-
-    /** Adds stock to a product and records it in the stock history. */
     public static void addStock(int productId, int qty) throws SQLException {
         try (Connection c = getConnection()) {
             c.setAutoCommit(false);
@@ -236,7 +238,6 @@ public class Database {
         }
     }
 
-    /** Recent stock additions as table rows: {date, product name, quantity}. */
     public static List<Object[]> getStockLog() throws SQLException {
         String sql = "SELECT l.log_date, p.product_name, l.quantity_added FROM stock_log l "
                 + "JOIN products p ON p.product_id = l.product_id ORDER BY l.log_date DESC, l.log_id DESC LIMIT 100";
@@ -250,12 +251,6 @@ public class Database {
         return rows;
     }
 
-    // ---------- 4. Sales ----------
-
-    /**
-     * Saves a completed sale: the transaction, its items, and the stock deduction.
-     * Everything succeeds together or nothing is saved.
-     */
     public static Sale checkout(List<CartItem> cart, BigDecimal total, BigDecimal cash) throws SQLException {
         BigDecimal change = cash.subtract(total);
         try (Connection c = getConnection()) {
@@ -296,7 +291,6 @@ public class Database {
                 }
                 c.commit();
 
-                // read the saved sale back so the receipt shows the real date and number
                 Sale sale;
                 try (PreparedStatement ps = c.prepareStatement("SELECT * FROM transactions WHERE transaction_id=?")) {
                     ps.setInt(1, saleId);
@@ -319,7 +313,6 @@ public class Database {
                 rs.getBigDecimal("total_amount"), rs.getBigDecimal("cash_received"), rs.getBigDecimal("change_amount"));
     }
 
-    /** All saved sales, newest first (without their items). */
     public static List<Sale> getTransactions() throws SQLException {
         List<Sale> list = new ArrayList<>();
         try (Connection c = getConnection(); Statement st = c.createStatement();
@@ -329,7 +322,6 @@ public class Database {
         return list;
     }
 
-    /** The items bought in one sale (used to rebuild its receipt). */
     public static List<CartItem> getTransactionItems(int saleId) throws SQLException {
         List<CartItem> items = new ArrayList<>();
         try (Connection c = getConnection();
@@ -346,9 +338,6 @@ public class Database {
     }
 }
 
-// ---------- 5. Data classes ----------
-
-/** One canteen product. */
 class Product {
     private final int id;
     private final String name;
@@ -366,7 +355,6 @@ class Product {
     int getStock() { return stock; }
 }
 
-/** One line in the cart (or on a receipt). */
 class CartItem {
     private final int productId;
     private final String name;
@@ -385,7 +373,6 @@ class CartItem {
     BigDecimal getSubtotal() { return price.multiply(BigDecimal.valueOf(quantity)); }
 }
 
-/** One completed sale (a saved transaction). */
 class Sale {
     private final int id;
     private final LocalDateTime date;

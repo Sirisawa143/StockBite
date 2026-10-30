@@ -3,7 +3,6 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 
-/** Notify.java - the pop-up messages: green toasts, warning/error dialogs, and confirmations. */
 public final class Notify {
     public enum Kind { SUCCESS, INFO, WARNING, ERROR }
 
@@ -31,7 +30,6 @@ public final class Notify {
         return "<html><div style='width:" + width + "px'>" + s + "</div></html>";
     }
 
-    // ---------- Icon badge ----------
     private static class Badge extends JComponent {
         private final Kind kind;
         Badge(Kind kind) {
@@ -87,9 +85,6 @@ public final class Notify {
         return p;
     }
 
-    // ---------- Toast ----------
-
-    /** Builds the toast card (also used for previews). */
     static JPanel toastCard(Kind kind, String title, String msg) {
         final Color accent = accent(kind);
         JPanel card = new JPanel(new BorderLayout(Style.LG, 0)) {
@@ -97,7 +92,7 @@ public final class Notify {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 int x = 8, y = 6, w = getWidth() - 16, h = getHeight() - 14;
-                for (int i = 6; i >= 1; i--) {   // soft shadow
+                for (int i = 6; i >= 1; i--) {
                     g2.setColor(new Color(0, 0, 0, 7));
                     g2.fillRoundRect(x - i, y - i + 3, w + 2 * i, h + 2 * i, 18 + i, 18 + i);
                 }
@@ -119,7 +114,6 @@ public final class Notify {
         return card;
     }
 
-    /** Shows a short, non-blocking message in the top-right corner that fades away. */
     public static void toast(Component parent, Kind kind, String title, String msg) {
         Window owner = ownerOf(parent);
         if (owner == null || !owner.isShowing()) return;
@@ -135,18 +129,18 @@ public final class Notify {
                     && gd.isWindowTranslucencySupported(GraphicsDevice.WindowTranslucency.TRANSLUCENT);
             if (translucent) w.setBackground(new Color(0, 0, 0, 0));
         } catch (Exception ex) { translucent = false; }
-        if (!translucent) w.setBackground(Style.BG);   // no fade; corners blend into the page color
+        if (!translucent) w.setBackground(Style.BG);
         w.setContentPane(toastCard(kind, title, msg));
         w.pack();
         w.setLocation(owner.getX() + owner.getWidth() - w.getWidth() - 12, owner.getY() + 92);
         currentToast = w;
 
         final boolean fade = translucent;
-        if (fade) { try { w.setOpacity(0f); } catch (Exception ex) { /* fade not supported */ } }
+        if (fade) { try { w.setOpacity(0f); } catch (Exception ex) {  } }
         w.setVisible(true);
 
         final float[] opacity = {0f};
-        final int[] phase = {0};      // 0 = fading in, 1 = holding, 2 = fading out
+        final int[] phase = {0};
         final int[] ticks = {0};
         currentTimer = new Timer(25, null);
         currentTimer.addActionListener((ActionEvent e) -> {
@@ -156,7 +150,7 @@ public final class Notify {
                     if (fade) w.setOpacity(opacity[0]);
                     if (opacity[0] >= 1f) phase[0] = 1;
                 } else if (phase[0] == 1) {
-                    if (++ticks[0] > 110) phase[0] = 2;      // about 2.7 seconds
+                    if (++ticks[0] > 110) phase[0] = 2;
                 } else {
                     opacity[0] = Math.max(0f, opacity[0] - 0.1f);
                     if (fade) w.setOpacity(opacity[0]);
@@ -173,12 +167,6 @@ public final class Notify {
         currentTimer.start();
     }
 
-    // ---------- Dialog ----------
-
-    /**
-     * Shows a modal message. With a cancelText it works as a confirmation and returns true
-     * only when the user clicks the main button; otherwise it just shows the message.
-     */
     public static boolean dialog(Component parent, Kind kind, String title, String msg,
                                  String okText, String cancelText, Color okColor) {
         Window owner = ownerOf(parent);

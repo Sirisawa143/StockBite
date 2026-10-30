@@ -19,13 +19,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 
-/**
- * Style.java - the look of the app: colors, fonts, spacing, buttons, tables, and money/date formatting.
- * Palette follows the UCC AIMS portal (orange, mint green, cream).
- * Fonts: Lora for headings, Inter for body text (loaded from the /fonts folder).
- */
 public final class Style {
-    // ---------- Colors ----------
+
     public static final Color WHITE   = Color.WHITE;
     public static final Color BG      = new Color(0xF0, 0xF9, 0xF6);
     public static final Color BORDER  = new Color(0xBF, 0xE0, 0xD6);
@@ -52,19 +47,17 @@ public final class Style {
     public static final Color RED     = CORAL;
     public static final Color GRAY    = MIST;
 
-    // ---------- Spacing scale ----------
     public static final int XS = 4, SM = 8, MD = 12, LG = 16, XL = 24, XXL = 32;
-    public static final int FIELD_H = 40;   // height of inputs
-    public static final int BUTTON_H = 40;  // height of buttons
+    public static final int FIELD_H = 40;
+    public static final int BUTTON_H = 40;
 
-    // ---------- Fonts ----------
-    public static final Font BASE;      // Inter Regular 13
-    public static final Font BOLD;      // Inter SemiBold 13
-    public static final Font SMALL;     // Inter Regular 12
-    public static final Font HEADING;   // Lora Bold 18
-    public static final Font TITLE;     // Lora Bold 28
-    public static final Font BIG;       // Inter Bold 28 (amounts)
-    public static final Font INPUT_BIG; // Inter SemiBold 18
+    public static final Font BASE;
+    public static final Font BOLD;
+    public static final Font SMALL;
+    public static final Font HEADING;
+    public static final Font TITLE;
+    public static final Font BIG;
+    public static final Font INPUT_BIG;
 
     static {
         Font interRegular = load("Inter-Regular.ttf", Font.PLAIN, "SansSerif");
@@ -82,7 +75,6 @@ public final class Style {
 
     private Style() {}
 
-    /** Loads a bundled TTF from the fonts folder; falls back to a built-in font if it is missing. */
     private static Font load(String file, int fallbackStyle, String fallbackName) {
         File[] candidates = {
                 new File("fonts", file),
@@ -108,15 +100,19 @@ public final class Style {
         return new Font(fallbackName, fallbackStyle, 13);
     }
 
-    // ---------- Components ----------
-
-    /** Rounded button with dark text and hover/pressed states. */
     public static JButton button(String text, Color color) {
         final Color base = color;
         final Color hover = shade(color, 18);
         final Color pressed = shade(color, 36);
         JButton b = new JButton(text) {
             private boolean over = false;
+            @Override public Dimension getPreferredSize() {
+                Dimension d = super.getPreferredSize();
+                return new Dimension(d.width, BUTTON_H);
+            }
+            @Override public Dimension getMinimumSize() {
+                return getPreferredSize();
+            }
             {
                 addMouseListener(new MouseAdapter() {
                     @Override public void mouseEntered(MouseEvent e) { over = true; repaint(); }
@@ -140,9 +136,7 @@ public final class Style {
         b.setBorderPainted(false);
         b.setFocusPainted(false);
         b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        b.setBorder(BorderFactory.createEmptyBorder(0, XL, 0, XL));
-        b.setPreferredSize(new Dimension(b.getPreferredSize().width, BUTTON_H));
-        b.setMinimumSize(new Dimension(40, BUTTON_H));
+        b.setBorder(BorderFactory.createEmptyBorder(0, LG, 0, LG));
         return b;
     }
 
@@ -150,12 +144,10 @@ public final class Style {
         return new Color(Math.max(0, c.getRed() - amount), Math.max(0, c.getGreen() - amount), Math.max(0, c.getBlue() - amount));
     }
 
-    /** White rounded card with a soft shadow and inner padding. */
     public static JPanel card(int padding) {
         return new RoundedPanel(padding);
     }
 
-    /** Styles a text field, spinner, or combo box to the shared input look. */
     public static void styleField(JComponent c) { styleField(c, -1); }
 
     public static void styleField(JComponent c, int width) {
@@ -187,7 +179,7 @@ public final class Style {
             }
             c.setBorder(new RoundedBorder(10, 1));
         }
-        // redraw the outline (orange when focused) as focus moves in and out
+
         final JComponent box = c;
         FocusAdapter repaint = new FocusAdapter() {
             @Override public void focusGained(FocusEvent e) { box.repaint(); }
@@ -255,14 +247,12 @@ public final class Style {
         h.setDefaultRenderer(head);
     }
 
-    /** Sets relative column widths (first value is the first column). */
     public static void widths(JTable t, int... w) {
         for (int i = 0; i < w.length && i < t.getColumnCount(); i++) {
             t.getColumnModel().getColumn(i).setPreferredWidth(w[i]);
         }
     }
 
-    /** A table (or any component) inside a rounded card with slim scrollbars. */
     public static JComponent scroll(JComponent c) {
         JScrollPane sp = new JScrollPane(c);
         sp.setBorder(BorderFactory.createEmptyBorder());
@@ -278,7 +268,6 @@ public final class Style {
         return card;
     }
 
-    /** Thin, rounded mint scrollbar without arrow buttons. */
     private static class SlimScrollBarUI extends javax.swing.plaf.basic.BasicScrollBarUI {
         @Override protected JButton createDecreaseButton(int o) { return zero(); }
         @Override protected JButton createIncreaseButton(int o) { return zero(); }
@@ -303,7 +292,6 @@ public final class Style {
         }
     }
 
-    /** Body label (Inter SemiBold). */
     public static JLabel label(String text) {
         JLabel l = new JLabel(text);
         l.setFont(BOLD);
@@ -311,7 +299,6 @@ public final class Style {
         return l;
     }
 
-    /** Heading label (Lora Bold). */
     public static JLabel heading(String text) {
         JLabel l = new JLabel(text);
         l.setFont(HEADING);
@@ -319,15 +306,12 @@ public final class Style {
         return l;
     }
 
-    /** Small gray helper text. */
     public static JLabel hint(String text) {
         JLabel l = new JLabel(text);
         l.setFont(SMALL);
         l.setForeground(MUTED);
         return l;
     }
-
-    // ---------- Money and date formatting ----------
 
     public static final java.time.format.DateTimeFormatter DATE_TIME =
             java.time.format.DateTimeFormatter.ofPattern("MMM dd, yyyy hh:mm a");
@@ -336,12 +320,9 @@ public final class Style {
     public static String peso(java.math.BigDecimal v) { return "\u20B1" + money(v); }
     public static String date(java.time.LocalDateTime d) { return d == null ? "" : d.format(DATE_TIME); }
 
-    /** Reads user input such as "1,250.50"; throws NumberFormatException if it is not a number. */
     public static java.math.BigDecimal parseMoney(String s) {
         return new java.math.BigDecimal(s.trim().replace(",", ""));
     }
-
-    // ---------- Notifications (see Notify.java) ----------
 
     public static void error(Component parent, Exception e) {
         String msg = e.getMessage() == null ? e.toString() : e.getMessage();
@@ -354,26 +335,20 @@ public final class Style {
         Notify.dialog(parent, Notify.Kind.ERROR, "Something went wrong", msg, "OK", null, CORAL);
     }
 
-    /** Success toast (non-blocking). */
     public static void info(Component parent, String msg) {
         Notify.toast(parent, Notify.Kind.SUCCESS, "Done", msg);
     }
 
-    /** Warning dialog. */
     public static void warn(Component parent, String msg) {
         Notify.dialog(parent, Notify.Kind.WARNING, "Please check", msg, "OK", null, ORANGE);
     }
 
-    /** Confirmation dialog; returns true if the user confirms. */
     public static boolean confirm(Component parent, String title, String msg, String confirmText) {
         return Notify.dialog(parent, Notify.Kind.WARNING, title, msg, confirmText, "Cancel", CORAL);
     }
 
-    // ====================== Rounded boxes ======================
-
     private static final int SHADOW = 5;
 
-    /** Rounded white card with a soft shadow along the bottom edge. Children are clipped to the rounded shape. */
     public static class RoundedPanel extends JPanel {
         private static final int RADIUS = 16;
 
@@ -406,7 +381,6 @@ public final class Style {
         }
     }
 
-    /** Rounded outline for inputs; turns orange while the field has focus. */
     static class RoundedBorder extends AbstractBorder {
         private final int radius, padding;
 
@@ -422,7 +396,7 @@ public final class Style {
             Area corners = new Area(new Rectangle2D.Float(x, y, w, h));
             corners.subtract(new Area(shape));
             g2.setColor(behind);
-            g2.fill(corners);                       // hides the square corners of the field behind the outline
+            g2.fill(corners);
             Component owner = KeyboardFocusManager.getCurrentKeyboardFocusManager().getPermanentFocusOwner();
             boolean focused = owner != null && SwingUtilities.isDescendingFrom(owner, c);
             g2.setColor(focused ? ORANGE : BORDER);
@@ -439,7 +413,6 @@ public final class Style {
         return b;
     }
 
-    /** Number spinner with rounded corners and flat arrow buttons. */
     public static class RoundSpinner extends JSpinner {
         public RoundSpinner(SpinnerModel model) { super(model); }
 
@@ -467,7 +440,6 @@ public final class Style {
         }
     }
 
-    /** Drop-down with rounded corners and a flat arrow button. */
     public static class RoundCombo<E> extends JComboBox<E> {
         public RoundCombo(E[] items) { super(items); }
 
@@ -494,7 +466,6 @@ public final class Style {
         }
     }
 
-    /** Rounded "pill" tabs: orange when selected, mint otherwise, with a mint line under them. */
     public static class FlatTabsUI extends BasicTabbedPaneUI {
         @Override protected void installDefaults() {
             super.installDefaults();

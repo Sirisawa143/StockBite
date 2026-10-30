@@ -6,7 +6,6 @@ import java.awt.*;
 import java.math.BigDecimal;
 import java.sql.SQLException;
 
-/** ProductsScreen.java - the Products tab: add, edit, delete, and search canteen products. */
 public class ProductsScreen extends JPanel {
 
     private final JTextField txtName = new JTextField();
@@ -28,7 +27,7 @@ public class ProductsScreen extends JPanel {
         setLayout(new BorderLayout(Style.XL, 0));
         setBackground(Style.BG);
         setBorder(BorderFactory.createEmptyBorder(Style.XL, Style.XL, Style.XL, Style.XL));
-        cbCategory.setEditable(false);   // choose from the list only, no typing
+        cbCategory.setEditable(false);
         cbCategory.setRenderer(new DefaultListCellRenderer() {
             @Override public Component getListCellRendererComponent(JList<?> list, Object value, int index,
                                                                     boolean sel, boolean focus) {
@@ -135,13 +134,12 @@ public class ProductsScreen extends JPanel {
         return p;
     }
 
-    /** Fills the dropdown with the default categories plus any category already in the database. */
     private void reloadCategories() {
         java.util.LinkedHashMap<String, String> items = new java.util.LinkedHashMap<>();
         for (String c : new String[]{"Meals", "Snacks", "Drinks", "Desserts", "Others"}) items.put(c.toLowerCase(), c);
         try {
             for (String c : Database.getCategories()) items.putIfAbsent(c.toLowerCase(), c);
-        } catch (SQLException ex) { /* keep the defaults */ }
+        } catch (SQLException ex) {  }
         Object keep = cbCategory.getSelectedItem();
         cbCategory.removeAllItems();
         cbCategory.addItem(CATEGORY_PROMPT);
@@ -149,11 +147,6 @@ public class ProductsScreen extends JPanel {
         cbCategory.setSelectedItem(keep == null ? CATEGORY_PROMPT : keep);
     }
 
-    /**
-     * Auto-category: if this product name was saved before, use its category and lock the
-     * dropdown. If it is new, unlock the dropdown so the user picks a category (first time only).
-     * Does nothing while editing an existing row, so its category can still be changed.
-     */
     private void autoFillCategory() {
         if (selectedId >= 0) return;
         String name = txtName.getText().trim();
@@ -162,7 +155,7 @@ public class ProductsScreen extends JPanel {
             try {
                 known = Database.findCategoryByName(name);
             } catch (SQLException ex) {
-                known = null;   // can't reach the database: just let the user choose
+                known = null;
             }
         }
         if (known != null) {
@@ -192,14 +185,14 @@ public class ProductsScreen extends JPanel {
         if (row < 0) return;
         selectedId = (Integer) model.getValueAt(row, 0);
         categoryLookup.stop();
-        cbCategory.setEnabled(true);
-        lblCategoryHint.setText(" ");
+        cbCategory.setEnabled(false);
+        lblCategoryHint.setText("Category is set automatically for existing items.");
         txtName.setText(model.getValueAt(row, 1).toString());
         cbCategory.setSelectedItem(model.getValueAt(row, 2).toString());
         txtPrice.setText(model.getValueAt(row, 3).toString().replace("\u20B1", "").replace(",", ""));
         spStock.setValue(model.getValueAt(row, 4));
-        spStock.setEnabled(false);   // stock changes only through the Inventory tab, so the history stays correct
-        lblStockHint.setText("Use the Inventory tab to add stock.");
+        spStock.setEnabled(true);
+        lblStockHint.setText("You can correct the stock quantity here.");
     }
 
     private void clearForm() {
@@ -217,7 +210,6 @@ public class ProductsScreen extends JPanel {
         txtName.requestFocus();
     }
 
-    /** Validates the form; returns null (after showing a message) if something is wrong. */
     private Product readForm(int id) {
         String name = txtName.getText().trim();
         String category = String.valueOf(cbCategory.getSelectedItem()).trim();
@@ -229,11 +221,17 @@ public class ProductsScreen extends JPanel {
                 return null;
             }
         } catch (SQLException ex) { Style.error(this, ex); return null; }
-        if (id == 0) {   // adding: a name saved before always keeps its earlier category
+        if (id == 0) {
             try {
                 String known = Database.findCategoryByName(name);
                 if (known != null) category = known;
-            } catch (SQLException ex) { /* fall back to what is selected */ }
+            } catch (SQLException ex) {  }
+        }
+        if (id > 0) {
+            try {
+                String known = Database.getCategory(id);
+                if (known != null) category = known;
+            } catch (SQLException ex) { Style.error(this, ex); return null; }
         }
         if (category.isEmpty() || category.equals(CATEGORY_PROMPT)) {
             Style.warn(this, "Please choose a category for this new product.");
